@@ -1,0 +1,13 @@
+{
+    "$schema": "https://raw.githubusercontent.com/tact-lang/tact/main/src/config/configSchema.json",
+    "projects": [
+        {
+            "name": "access_pass",
+            "path": "./contracts/access_pass.tact",
+            "output": "./build/access_pass",
+            "options": {
+                "debug": false
+            }
+        }
+    ]
+}

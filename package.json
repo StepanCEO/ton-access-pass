@@ -1,0 +1,33 @@
+{
+    "name": "ton-access-pass",
+    "version": "0.0.1",
+    "scripts": {
+        "build": "tact --config tact.config.json",
+        "test": "npm run build && jest --verbose",
+        "app:dev": "vite app",
+        "app:build": "tsc -p app && vite build app",
+        "deploy": "bash scripts/deploy-backend.sh"
+    },
+    "dependencies": {
+        "@ton/core": "~0",
+        "@tonconnect/ui": "^5.0.1"
+    },
+    "devDependencies": {
+        "@tact-lang/compiler": ">=1.6.13 <2.0.0",
+        "@ton/crypto": "^3.3.0",
+        "@ton/sandbox": ">=0.37.0",
+        "@ton/test-utils": ">=0.11.0",
+        "@ton/ton": ">=16.2.2 <17.0.0",
+        "@types/jest": "^30.0.0",
+        "@types/node": "^22.17.2",
+        "esbuild": "^0.27.4",
+        "jest": "^30.0.5",
+        "prettier": "^3.6.2",
+        "ts-jest": "^29.4.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.2",
+        "vite": "^8.3.5"
+    },
+    "description": "Paid access to a private Telegram channel with TON: Tact smart contract, Telegram bot and Mini App",
+    "license": "MIT"
+}

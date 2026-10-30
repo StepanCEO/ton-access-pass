@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>showcase</title>
+<style>
+  body { margin: 0; width: 1280px; height: 760px; display: flex; gap: 40px; align-items: center; justify-content: center;
+         background: radial-gradient(1200px 600px at 20% 0%, #0b3a66 0%, #08121e 60%); font-family: -apple-system, sans-serif; }
+  figure { margin: 0; display: grid; gap: 14px; justify-items: center; color: #9fb3c8; font-size: 15px; }
+  iframe { width: 360px; height: 640px; border: 0; border-radius: 28px; box-shadow: 0 30px 80px rgb(0 0 0 / .5), 0 0 0 8px #1b2430; background: #0e1218; }
+</style>
+</head>
+<body>
+  <figure><iframe src="/?mock=new"></iframe><figcaption data-en="1 · New subscriber">1 · Новая подписка</figcaption></figure>
+  <figure><iframe src="/?mock=active"></iframe><figcaption data-en="2 · Paid — join the channel">2 · Оплачено — вход в канал</figcaption></figure>
+  <figure><iframe src="/?mock=expired"></iframe><figcaption data-en="3 · Expired — renew">3 · Срок вышел — продление</figcaption></figure>
+  <script>
+    // Dev-only page for README screenshots: ?lang=en|ru picks the language of captions and screens
+    const lang = new URLSearchParams(location.search).get('lang') ?? 'ru';
+    document.querySelectorAll('iframe').forEach((frame) => (frame.src += `&lang=${lang}`));
+    if (lang === 'en') document.querySelectorAll('[data-en]').forEach((el) => (el.textContent = el.dataset.en));
+  </script>
+</body>
+</html>

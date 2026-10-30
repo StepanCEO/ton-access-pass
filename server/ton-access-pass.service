@@ -1,0 +1,32 @@
+# TON Access Pass: Telegram-бот + API для Mini App (dist/backend.cjs).
+# Настройки — /etc/ton-access-pass/config.env, токен бота — /etc/ton-access-pass/secret.env (права 600,
+# пишется только командой ton-access-pass-setup). Состояние — /var/lib/ton-access-pass.
+[Unit]
+Description=TON Access Pass bot and API
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/ton-access-pass/secret.env
+
+[Service]
+ExecStart=/usr/bin/node /opt/ton-access-pass/backend.cjs
+EnvironmentFile=/etc/ton-access-pass/config.env
+EnvironmentFile=/etc/ton-access-pass/secret.env
+Environment=PORT=8096
+Environment=DATA_FILE=/var/lib/ton-access-pass/state.json
+DynamicUser=yes
+StateDirectory=ton-access-pass
+StateDirectoryMode=0700
+Restart=on-failure
+RestartSec=10
+MemoryMax=192M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

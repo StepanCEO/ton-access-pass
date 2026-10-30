@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Подключает бота к TON Access Pass.
+# Запуск: ssh -t root@<сервер> ton-access-pass-setup
+# Токен вводится скрыто, проверяется в Telegram и сохраняется только в /etc/ton-access-pass/secret.env (права 600).
+set -euo pipefail
+DIR=/etc/ton-access-pass
+
+if ! grep -qE '^MASTER_ADDRESS=.+' "$DIR/config.env" 2>/dev/null; then
+  echo "Сначала нужен адрес контракта: MASTER_ADDRESS в $DIR/config.env пустой."
+  exit 1
+fi
+
+read -rsp "Вставьте токен бота от @BotFather (ввод не отображается) и нажмите Enter: " TOKEN
+echo
+[[ "$TOKEN" =~ ^[0-9]+:[A-Za-z0-9_-]{30,}$ ]] || { echo "Это не похоже на токен бота — отмена."; exit 1; }
+
+# токен передаём curl через stdin, чтобы он не светился в списке процессов
+NAME=$(printf 'url = "https://api.telegram.org/bot%s/getMe"\n' "$TOKEN" | curl -s -K - | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+print(data["result"]["username"] if data.get("ok") else "")')
+[ -n "$NAME" ] || { echo "Telegram не принял токен — проверьте его в @BotFather."; exit 1; }
+
+umask 077
+printf 'BOT_TOKEN=%s\n' "$TOKEN" > "$DIR/secret.env"
+chmod 600 "$DIR/secret.env"
+systemctl enable ton-access-pass >/dev/null 2>&1
+systemctl restart ton-access-pass
+sleep 4
+
+echo "Бот @$NAME подключён. Последние строки журнала:"
+journalctl -u ton-access-pass -n 6 --no-pager -o cat
+echo
+echo "Дальше: добавьте @$NAME администратором в закрытый канал с правом «Пригласительные ссылки» — бот запомнит канал сам."

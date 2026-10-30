@@ -1,0 +1,30 @@
+node_modules
+temp
+build
+dist
+.DS_Store
+package.ts
+.env
+
+# VS Code
+.vscode/*
+.history/
+*.vsix
+
+# IDEA files
+.idea
+
+# VIM
+Session.vim
+.vim/
+
+# Other private editor folders
+.nvim/
+.emacs/
+.helix/
+
+# локальное состояние бота
+data
+# тестовый кошелёк разработчика (фраза восстановления)
+.wallet*
+.deploy.env
