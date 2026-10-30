@@ -32,6 +32,7 @@ async function main() {
     const me = await api<{ username: string }>('getMe');
     console.log(`Бот @${me.username}, сеть ${config.network}, контракт ${config.masterAddress.toString({ testOnly: config.network === 'testnet' })}`);
     if (!service.channelId) console.log('Канал не подключён: добавьте бота в канал администратором с правом приглашать');
+    await service.loadChannelTitle().catch((error) => console.log(`Название канала не получено: ${error}`));
     if (config.miniAppUrl) {
         await api('setChatMenuButton', {
             menu_button: { type: 'web_app', text: 'Подписка', web_app: { url: config.miniAppUrl } },

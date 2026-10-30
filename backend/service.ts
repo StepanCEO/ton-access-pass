@@ -37,6 +37,18 @@ export class AccessService {
         return this.deps.channelId ?? this.deps.store.state.channelId;
     }
 
+    get channelTitle(): string | undefined {
+        return this.deps.store.state.channelTitle;
+    }
+
+    /** Название канала для шапки Mini App (если канал задан через CHANNEL_ID, бот не видел его добавления). */
+    async loadChannelTitle() {
+        if (!this.channelId || this.channelTitle) return;
+        const chat = await this.deps.api<{ title?: string }>('getChat', { chat_id: this.channelId });
+        this.deps.store.state.channelTitle = chat.title;
+        this.deps.store.save();
+    }
+
     async handleUpdate(update: any) {
         if (update.message?.text) await this.onMessage(update.message);
         else if (update.chat_join_request) await this.onJoinRequest(update.chat_join_request);
@@ -174,9 +186,11 @@ export class AccessService {
         const status = update.new_chat_member?.status;
         if (status === 'administrator') {
             store.state.channelId = update.chat.id;
+            store.state.channelTitle = update.chat.title;
             this.log(`Канал подключён: ${update.chat.title} (${update.chat.id})`);
         } else if (update.chat.id === store.state.channelId && (status === 'left' || status === 'kicked')) {
             store.state.channelId = undefined;
+            store.state.channelTitle = undefined;
             this.log('Бота убрали из канала');
         } else return;
         store.state.inviteLink = undefined;

@@ -1,6 +1,7 @@
 export interface AppConfig {
     network: 'testnet' | 'mainnet';
     botUsername: string | null;
+    channelTitle: string | null;
     master: string;
     price: string;
     period: number;
@@ -50,6 +51,7 @@ export function mockApi(mode: string): Api {
     const config: AppConfig = {
         network: 'testnet',
         botUsername: 'ton_access_pass_bot',
+        channelTitle: null,
         master: 'kQAcI3X5Pt46n3grbyZBW5QegZDhjkfd2wVTb1s8PupuSg1m',
         price: '1000000000',
         period: 30 * 86400,

@@ -1,24 +1,32 @@
-/* Цвета берутся из темы Telegram (--tg-theme-*), вне Telegram — из своей палитры. */
+/*
+ * Сгруппированные списки как в настройках Telegram. Цвета — из темы Telegram (--tg-theme-*),
+ * вне Telegram — палитра его iOS-клиента.
+ */
 :root {
-    --bg: var(--tg-theme-bg-color, #f4f6f9);
-    --card: var(--tg-theme-secondary-bg-color, #ffffff);
-    --text: var(--tg-theme-text-color, #0f1720);
-    --hint: var(--tg-theme-hint-color, #6b7684);
-    --accent: var(--tg-theme-button-color, #0098ea);
+    --page: var(--tg-theme-secondary-bg-color, #efeff4);
+    --section: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #ffffff));
+    --text: var(--tg-theme-text-color, #000000);
+    --hint: var(--tg-theme-hint-color, #8e8e93);
+    --section-title: var(--tg-theme-section-header-text-color, #6d6d72);
+    --separator: var(--tg-theme-section-separator-color, #c8c7cc);
+    --accent: var(--tg-theme-button-color, #2481cc);
     --accent-text: var(--tg-theme-button-text-color, #ffffff);
-    --link: var(--tg-theme-link-color, #0098ea);
-    --success: #23a55a;
-    --danger: #e5484d;
-    --radius: 16px;
+    --link: var(--tg-theme-link-color, #2481cc);
+    --ok: #31b545;
+    --danger: var(--tg-theme-destructive-text-color, #ff3b30);
     color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg: var(--tg-theme-bg-color, #0e1218);
-        --card: var(--tg-theme-secondary-bg-color, #181e27);
-        --text: var(--tg-theme-text-color, #eef2f6);
-        --hint: var(--tg-theme-hint-color, #8b97a6);
+        --page: var(--tg-theme-secondary-bg-color, #000000);
+        --section: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #1c1c1d));
+        --text: var(--tg-theme-text-color, #ffffff);
+        --hint: var(--tg-theme-hint-color, #8d8e93);
+        --section-title: var(--tg-theme-section-header-text-color, #8d8e93);
+        --separator: var(--tg-theme-section-separator-color, #3d3d3f);
+        --accent: var(--tg-theme-button-color, #3e88f7);
+        --link: var(--tg-theme-link-color, #3e88f7);
     }
 }
 
@@ -28,210 +36,204 @@
 
 body {
     margin: 0;
-    background: var(--bg);
+    background: var(--page);
     color: var(--text);
     font:
-        16px/1.45 -apple-system,
+        17px/1.3 -apple-system,
         BlinkMacSystemFont,
-        'Segoe UI',
+        'SF Pro Text',
         Roboto,
+        'Helvetica Neue',
         sans-serif;
     -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .app {
-    max-width: 480px;
+    max-width: 520px;
     margin: 0 auto;
-    padding: 20px 16px calc(28px + env(safe-area-inset-bottom));
-    display: grid;
-    gap: 12px;
+    padding: 24px 16px calc(96px + env(safe-area-inset-bottom));
 }
 
-h1 {
-    margin: 12px 0 4px;
-    font-size: 26px;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
-}
-
-h2 {
-    margin: 0 0 8px;
-    font-size: 15px;
+[hidden] {
+    display: none !important;
 }
 
 .muted {
     color: var(--hint);
 }
 
-.small {
-    font-size: 14px;
+.ok {
+    color: var(--ok);
 }
 
-.hero p {
-    margin: 0;
+.mono {
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 15px;
 }
 
-.hero__top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.hero__logo {
-    border-radius: 12px;
-}
-
-.badge {
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #b25e00;
-    background: rgb(255 170 0 / 0.16);
-}
-
-.card {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 16px;
-}
-
-.status__value {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin: 2px 0 10px;
-    font-size: 19px;
-    font-weight: 600;
-}
-
-.status__label {
-    font-weight: 600;
-}
-
-.dot {
-    width: 10px;
-    height: 10px;
-    flex: none;
-    margin-top: 9px; /* по центру первой строки, даже если дата переносится */
-    border-radius: 50%;
-    background: var(--hint);
-}
-
-.is-active .dot {
-    background: var(--success);
-    box-shadow: 0 0 0 4px rgb(35 165 90 / 0.18);
-}
-
-.meter {
-    height: 6px;
-    border-radius: 3px;
-    background: rgb(127 127 127 / 0.18);
-    overflow: hidden;
-    margin-bottom: 6px;
-}
-
-.meter span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--success);
-    transition: width 0.6s ease;
-}
-
-.price__main {
-    font-size: 18px;
-    font-weight: 600;
-}
-
-.wallet {
-    display: flex;
-    justify-content: center;
-    min-height: 40px;
-}
-
-.wallet[hidden] {
-    display: none;
-}
-
-.actions {
-    display: grid;
-    gap: 10px;
-}
-
-.actions:empty {
-    display: none;
-}
-
-.button {
-    display: block;
-    width: 100%;
-    padding: 14px 16px;
-    border: 0;
-    border-radius: 12px;
-    font: inherit;
-    font-weight: 600;
+/* Шапка: аватар канала, название, подпись */
+.head {
     text-align: center;
-    text-decoration: none;
-    color: var(--accent-text);
+    margin-bottom: 28px;
+}
+
+.avatar {
+    width: 84px;
+    height: 84px;
+    margin: 0 auto 12px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
     background: var(--accent);
-    cursor: pointer;
-    transition:
-        opacity 0.15s ease,
-        transform 0.15s ease;
-}
-
-.button:active {
-    transform: scale(0.98);
-}
-
-.button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-.button--secondary {
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
-.link {
-    border: 0;
-    background: none;
-    font: inherit;
-    color: var(--link);
-    cursor: pointer;
-}
-
-.notice {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: var(--card);
-}
-
-.notice--success {
-    color: var(--success);
+    color: var(--accent-text);
+    font-size: 36px;
     font-weight: 600;
 }
 
-.notice--error {
+.head__title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.head__sub {
+    margin: 4px 0 0;
+    color: var(--hint);
+    font-size: 15px;
+}
+
+/* Группы и строки */
+.group {
+    margin-bottom: 28px;
+}
+
+.group__title {
+    margin: 0 16px 7px;
+    color: var(--section-title);
+    font-size: 13px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+}
+
+.group__note {
+    margin: 7px 16px 0;
+    color: var(--hint);
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.group__note--top {
+    margin: 0 16px 7px;
+}
+
+.group__note.is-success {
+    color: var(--ok);
+}
+
+.group__note.is-error {
     color: var(--danger);
 }
 
-.spinner {
-    width: 18px;
-    height: 18px;
+.list {
+    background: var(--section);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 16px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+}
+
+.row + .row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 0;
+    border-top: 1px solid var(--separator);
+}
+
+@media (min-resolution: 2dppx) {
+    .row + .row::before {
+        border-top-width: 0.5px;
+    }
+}
+
+.row__label {
+    white-space: nowrap;
+}
+
+.row__value {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--hint);
+    text-align: right;
+}
+
+.row--link,
+.row--action {
+    cursor: pointer;
+}
+
+.row--link:active,
+.row--action:active {
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.row--action {
+    justify-content: flex-start;
+    color: var(--link);
+}
+
+.row--wallet {
+    min-height: 56px;
+    padding-block: 8px;
+}
+
+.chevron {
+    width: 8px;
+    height: 8px;
     flex: none;
-    margin-top: 2px;
-    border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
-    border-top-color: var(--accent);
+    margin-right: 4px;
+    border: solid var(--hint);
+    border-width: 2px 2px 0 0;
+    opacity: 0.6;
+    transform: rotate(45deg);
+}
+
+.spinner {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    border: 2px solid color-mix(in srgb, var(--hint) 35%, transparent);
+    border-top-color: var(--hint);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+}
+
+.skeleton {
+    display: inline-block;
+    width: 72px;
+    height: 12px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--hint) 25%, transparent);
 }
 
 @keyframes spin {
@@ -240,51 +242,42 @@ h2 {
     }
 }
 
-.skeleton {
-    height: 58px;
+/* Нижняя кнопка вне Telegram — повторяет MainButton */
+.bottom-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+    background: var(--page);
+}
+
+.main-button {
+    display: block;
+    width: 100%;
+    max-width: 488px;
+    height: 50px;
+    margin: 0 auto;
+    border: 0;
     border-radius: 10px;
-    background: linear-gradient(90deg, rgb(127 127 127 / 0.1), rgb(127 127 127 / 0.2), rgb(127 127 127 / 0.1));
-    background-size: 200% 100%;
-    animation: shimmer 1.2s ease infinite;
+    background: var(--accent);
+    color: var(--accent-text);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
 }
 
-@keyframes shimmer {
-    to {
-        background-position: -200% 0;
-    }
+.main-button:active {
+    opacity: 0.8;
 }
 
-.how {
-    padding: 4px 4px 0;
-}
-
-.how ol {
-    margin: 0;
-    padding-left: 20px;
-    color: var(--hint);
-    font-size: 14px;
-    display: grid;
-    gap: 6px;
-}
-
-.footer {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    padding-top: 8px;
-    font-size: 14px;
-}
-
-.footer a {
-    color: var(--link);
-    text-decoration: none;
+.main-button.is-loading {
+    opacity: 0.6;
+    cursor: default;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        transition: none !important;
+    .spinner {
+        animation-duration: 2s;
     }
 }

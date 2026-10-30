@@ -10,12 +10,22 @@ declare global {
     }
 }
 
+interface TelegramMainButton {
+    setParams(params: { text?: string; is_active?: boolean; is_visible?: boolean }): void;
+    showProgress(leaveActive?: boolean): void;
+    hideProgress(): void;
+    onClick(callback: () => void): void;
+}
+
 interface TelegramWebApp {
     initData: string;
     initDataUnsafe: { user?: { language_code?: string } };
     ready(): void;
     expand(): void;
     openTelegramLink(url: string): void;
+    setHeaderColor?(color: string): void;
+    setBackgroundColor?(color: string): void;
+    MainButton?: TelegramMainButton;
     HapticFeedback?: { notificationOccurred(type: 'success' | 'error' | 'warning'): void };
 }
 
@@ -25,10 +35,14 @@ const POLL_ATTEMPTS = 45; // ~3 минуты
 // CHAIN из TON Connect: сам SDK тяжёлый и грузится отдельно, после первого экрана
 const CHAIN_MAINNET = '-239';
 const CHAIN_TESTNET = '-3';
+// цена + 0.05 TON на контракт подписки + 0.01 запас на комиссию (см. backend/chain.ts)
+const FEES_NANO = 60_000_000n;
 
 const tg = window.Telegram?.WebApp;
 tg?.ready();
 tg?.expand();
+tg?.setHeaderColor?.('secondary_bg_color');
+tg?.setBackgroundColor?.('secondary_bg_color');
 
 const devParams = import.meta.env.DEV ? new URLSearchParams(location.search) : null;
 const mockMode = devParams?.get('mock') ?? null;
@@ -38,137 +52,185 @@ const api: Api = mockMode ? mockApi(mockMode) : httpApi(initData);
 const userLang = devParams?.get('lang') ?? tg?.initDataUnsafe.user?.language_code ?? navigator.language;
 const lang: Lang = userLang.toLowerCase().startsWith('ru') ? 'ru' : 'en';
 const t = strings(lang);
+const locale = lang === 'ru' ? 'ru-RU' : 'en-US';
 document.documentElement.lang = lang;
 
-type Notice = { kind: 'info' | 'success' | 'error'; text: string; hint?: string } | null;
+type Notice = { kind: 'success' | 'error'; text: string; retry?: boolean } | null;
 
-const state: { config?: AppConfig; me?: Me; busy: boolean; waiting: boolean; notice: Notice } = {
-    busy: false,
-    waiting: false,
-    notice: null,
-};
+const state: { config?: AppConfig; me?: Me; waiting: boolean; notice: Notice } = { waiting: false, notice: null };
 
 const root = document.getElementById('app')!;
 let tonConnect: TonConnectUI | undefined;
 
-const escape = (text: string) =>
-    text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
-
-const formatTon = (nano: bigint) =>
-    (Number(nano) / 1e9).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', { maximumFractionDigits: 2 });
-
+const escape = (text: string) => text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+const formatTon = (nano: bigint) => (Number(nano) / 1e9).toLocaleString(locale, { maximumFractionDigits: 2 });
 const formatDate = (unix: number) =>
-    new Date(unix * 1000).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', {
+    new Date(unix * 1000).toLocaleString(locale, {
         day: 'numeric',
-        month: 'long',
+        month: lang === 'ru' ? 'long' : 'short',
         hour: '2-digit',
         minute: '2-digit',
     });
-
-const totalNano = () => BigInt(state.config!.price) + 60_000_000n; // цена + 0.05 на подписку + 0.01 запас
-
+const totalTon = () => formatTon(BigInt(state.config!.price) + FEES_NANO);
 const explorer = (address: string) =>
     `https://${state.config?.network === 'testnet' ? 'testnet.' : ''}tonviewer.com/${address}`;
+const openLink = (url: string) =>
+    tg && url.startsWith('https://t.me/') ? tg.openTelegramLink(url) : window.open(url, '_blank', 'noopener');
 
-const openLink = (url: string) => (tg && url.startsWith('https://t.me/') ? tg.openTelegramLink(url) : window.open(url, '_blank'));
+const row = (label: string, value = '') =>
+    `<div class="row"><span class="row__label">${label}</span><span class="row__value">${value}</span></div>`;
+const linkRow = (label: string, attrs: string) =>
+    `<a class="row row--link" ${attrs}><span class="row__label">${label}</span><span class="chevron" aria-hidden="true"></span></a>`;
+
+/* Главная кнопка: нативная MainButton внутри Telegram, вне его — такая же панель внизу страницы. */
+const nativeButton = !mockMode && initData && tg?.MainButton ? tg.MainButton : null;
+let mainAction: (() => void) | null = null;
+
+function setMainButton(text: string | null, { progress = false } = {}) {
+    if (nativeButton) {
+        nativeButton.setParams({ text: text ?? '', is_visible: text !== null, is_active: !progress });
+        progress ? nativeButton.showProgress(false) : nativeButton.hideProgress();
+        return;
+    }
+    const bar = document.getElementById('bottom-bar');
+    const button = document.getElementById('main-button') as HTMLButtonElement | null;
+    if (!bar || !button) return;
+    bar.hidden = text === null;
+    button.disabled = progress;
+    button.classList.toggle('is-loading', progress);
+    button.textContent = text ?? '';
+}
 
 function renderShell() {
-    const { config } = state;
-    const days = Math.round(config!.period / 86400);
+    const config = state.config!;
+    const title = config.channelTitle ?? t.channelFallback;
+    const days = Math.round(config.period / 86400);
     root.innerHTML = `
-        <header class="hero">
-            <div class="hero__top">
-                <img class="hero__logo" src="/icon.svg" width="44" height="44" alt="" />
-                ${config!.network === 'testnet' ? `<span class="badge">${t.testnet}</span>` : ''}
-            </div>
-            <h1>TON Access Pass</h1>
-            <p class="muted">${t.tagline}</p>
+        <header class="head">
+            <div class="avatar" aria-hidden="true">${escape(title.trim().charAt(0).toUpperCase())}</div>
+            <h1 class="head__title">${escape(title)}</h1>
+            <p class="head__sub">${t.subtitle(config.network)}</p>
         </header>
-        <section class="card" id="status"></section>
-        <section class="card price">
-            <div class="price__main">${t.price(formatTon(BigInt(config!.price)), days)}</div>
-            <div class="muted small">${t.fee}</div>
+
+        <section class="group">
+            <h2 class="group__title">${t.subscription}</h2>
+            <div class="list" id="status"></div>
+            <p class="group__note" id="notice" hidden></p>
         </section>
-        <div id="ton-connect" class="wallet" ${initData && !mockMode ? '' : 'hidden'}></div>
-        <section id="actions" class="actions"></section>
-        <section class="how">
-            <h2>${t.howTitle}</h2>
-            <ol>${t.how.map((step) => `<li>${step}</li>`).join('')}</ol>
+
+        <section class="group">
+            <h2 class="group__title">${t.plan}</h2>
+            <div class="list">
+                ${row(t.days(days), `${formatTon(BigInt(config.price))} TON`)}
+                ${row(t.networkFee, `${formatTon(FEES_NANO)} TON`)}
+            </div>
+            <p class="group__note">${t.planNote}</p>
         </section>
-        <footer class="footer">
-            <a href="${explorer(config!.master)}" target="_blank" rel="noopener">${t.contract} ↗</a>
-            <a href="${SOURCE_URL}" target="_blank" rel="noopener">${t.source} ↗</a>
-        </footer>`;
+
+        <section class="group" ${initData ? '' : 'hidden'}>
+            <h2 class="group__title">${t.wallet}</h2>
+            <div class="list">
+                <div class="row row--wallet">
+                    <span class="row__label">${mockMode ? 'Tonkeeper' : t.wallet}</span>
+                    ${mockMode ? `<span class="row__value mono">0QAP…CBKQ</span>` : `<div id="ton-connect"></div>`}
+                </div>
+            </div>
+        </section>
+
+        <section class="group" id="extra-group" hidden>
+            <div class="list" id="extra"></div>
+        </section>
+
+        <section class="group">
+            ${initData ? '' : `<p class="group__note group__note--top">${t.outsideTelegram}</p>`}
+            <div class="list">
+                ${linkRow(t.contract, `href="${explorer(config.master)}" target="_blank" rel="noopener"`)}
+                ${linkRow(t.source, `href="${SOURCE_URL}" target="_blank" rel="noopener"`)}
+            </div>
+        </section>
+
+        ${nativeButton ? '' : `<div class="bottom-bar" id="bottom-bar" hidden><button class="main-button" id="main-button"></button></div>`}`;
 }
 
 function renderStatus() {
-    const status = document.getElementById('status')!;
-    const { me } = state;
+    const status = document.getElementById('status');
+    if (!status) return;
+    const { me, waiting } = state;
     if (!initData) {
-        status.innerHTML = `
-            <div class="status__label">${t.openInTelegram}</div>
-            <p class="muted small">${t.openInTelegramHint}</p>`;
+        status.innerHTML = row(t.status, `<span class="muted">${t.statusNone}</span>`);
         return;
     }
     if (!me) {
-        status.innerHTML = `<div class="skeleton"></div>`;
+        status.innerHTML = row(t.status, '<span class="skeleton"></span>');
         return;
     }
-    const now = Date.now() / 1000;
-    const daysLeft = Math.max(0, Math.ceil((me.expiresAt - now) / 86400));
-    const periodDays = state.config!.period / 86400;
-    const progress = Math.min(100, (daysLeft / periodDays) * 100);
-    status.innerHTML = `
-        <div class="status__label muted small">${t.statusTitle}</div>
-        <div class="status__value ${me.active ? 'is-active' : ''}">
-            <span class="dot"></span>
-            ${me.active ? t.active(formatDate(me.expiresAt)) : me.expiresAt ? t.expired(formatDate(me.expiresAt)) : t.none}
-        </div>
-        ${
-            me.active
-                ? `<div class="meter" role="progressbar" aria-valuenow="${daysLeft}" aria-valuemin="0" aria-valuemax="${periodDays}">
-                       <span style="width:${progress}%"></span>
-                   </div>
-                   <div class="muted small">${t.daysLeft(daysLeft)}</div>`
-                : ''
-        }`;
+    const daysLeft = Math.max(0, Math.ceil((me.expiresAt - Date.now() / 1000) / 86400));
+    const value = waiting
+        ? `<span class="spinner" aria-hidden="true"></span>${t.statusChecking}`
+        : me.active
+          ? `<span class="ok">${t.statusActive}</span>`
+          : `<span class="muted">${me.expiresAt ? t.statusExpired : t.statusNone}</span>`;
+    status.innerHTML = [
+        row(t.status, value),
+        me.active ? row(t.validUntil, formatDate(me.expiresAt)) : me.expiresAt ? row(t.endedAt, formatDate(me.expiresAt)) : '',
+        me.active ? row(t.left, t.days(daysLeft)) : '',
+    ].join('');
 }
 
-function renderActions() {
-    const actions = document.getElementById('actions')!;
-    const { me, notice, busy, waiting } = state;
-    const parts: string[] = [];
+function renderNotice() {
+    const notice = document.getElementById('notice');
+    if (!notice) return;
+    notice.hidden = !state.notice;
+    notice.className = `group__note ${state.notice ? `is-${state.notice.kind}` : ''}`;
+    notice.textContent = state.notice?.text ?? '';
+}
 
-    if (notice) {
-        parts.push(`
-            <div class="notice notice--${notice.kind}">
-                ${notice.kind === 'info' ? '<span class="spinner" aria-hidden="true"></span>' : ''}
-                <div><div>${escape(notice.text)}</div>${notice.hint ? `<div class="small muted">${escape(notice.hint)}</div>` : ''}</div>
-            </div>`);
+function renderExtra() {
+    const group = document.getElementById('extra-group');
+    const extra = document.getElementById('extra');
+    if (!group || !extra) return;
+    const rows: string[] = [];
+    // главная кнопка у активного подписчика открывает канал, продление — строкой в списке
+    if (state.me?.active && state.me.joinLink && !state.waiting) {
+        rows.push(`<button class="row row--action" data-action="pay">${t.extend(totalTon())}</button>`);
     }
+    if (state.notice?.retry) rows.push(`<button class="row row--action" data-action="refresh">${t.refresh}</button>`);
+    group.hidden = rows.length === 0;
+    extra.innerHTML = rows.join('');
+}
 
+function renderMainButton() {
+    const { me, waiting, config } = state;
     if (!initData) {
-        const bot = state.config?.botUsername;
-        if (bot) parts.push(`<a class="button" href="https://t.me/${bot}" target="_blank" rel="noopener">${t.openBot}</a>`);
-    } else if (me) {
-        if (me.active && me.joinLink) parts.push(`<button class="button" data-action="join">${t.join}</button>`);
-        const connected = mockMode !== null || tonConnect?.connected;
-        const label = !connected ? t.connectFirst : me.active ? t.extend(formatTon(totalNano())) : t.pay(formatTon(totalNano()));
-        parts.push(
-            `<button class="button ${me.active ? 'button--secondary' : ''}" data-action="pay" ${busy || waiting ? 'disabled' : ''}>${label}</button>`,
-        );
+        mainAction = config?.botUsername ? () => openLink(`https://t.me/${config.botUsername}`) : null;
+        return setMainButton(mainAction ? t.openBot : null);
     }
-    if (initData && notice?.kind === 'error') parts.push(`<button class="link" data-action="refresh">${t.refresh}</button>`);
-    actions.innerHTML = parts.join('');
+    if (!me) return setMainButton(null);
+    if (waiting) return setMainButton(t.statusChecking, { progress: true });
+    if (me.active && me.joinLink) {
+        mainAction = () => openLink(me.joinLink!);
+        return setMainButton(t.openChannel);
+    }
+    const connected = mockMode !== null || tonConnect?.connected;
+    mainAction = () => void pay();
+    setMainButton(connected ? (me.active ? t.extend(totalTon()) : t.pay(totalTon())) : t.connect);
 }
 
 function render() {
     renderStatus();
-    renderActions();
+    renderNotice();
+    renderExtra();
+    renderMainButton();
 }
 
 async function refresh() {
     state.me = await api.me();
+    render();
+}
+
+function fail(text: string, retry = false) {
+    state.notice = { kind: 'error', text, retry };
+    tg?.HapticFeedback?.notificationOccurred('error');
     render();
 }
 
@@ -177,16 +239,13 @@ async function pay() {
         await tonConnect?.openModal();
         return;
     }
-    const wallet = tonConnect?.wallet;
-    if (!mockMode && state.config!.network === 'testnet' && wallet?.account.chain !== CHAIN_TESTNET) {
-        state.notice = { kind: 'error', text: t.wrongNetwork };
-        render();
-        return;
+    if (!mockMode && state.config!.network === 'testnet' && tonConnect?.wallet?.account.chain !== CHAIN_TESTNET) {
+        return fail(t.wrongNetwork);
     }
 
     const before = state.me?.expiresAt ?? 0;
-    state.busy = true;
     state.notice = null;
+    state.waiting = true;
     render();
     try {
         const payment = await api.payment();
@@ -197,22 +256,13 @@ async function pay() {
             });
         }
     } catch (error) {
-        state.busy = false;
+        state.waiting = false;
         const sdk = await tonConnectModule();
-        const rejected = sdk !== null && error instanceof sdk.UserRejectsError;
-        state.notice = { kind: 'error', text: rejected ? t.rejected : t.error };
-        tg?.HapticFeedback?.notificationOccurred('error');
-        render();
-        return;
+        return fail(sdk !== null && error instanceof sdk.UserRejectsError ? t.rejected : t.error);
     }
 
-    state.busy = false;
-    state.waiting = true;
-    state.notice = { kind: 'info', text: t.waiting, hint: t.waitingHint };
-    render();
-
     for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, mockMode ? 1500 : POLL_INTERVAL_MS));
+        await new Promise((resolve) => setTimeout(resolve, mockMode ? 1800 : POLL_INTERVAL_MS));
         const me = await api.me().catch(() => null);
         if (me && me.expiresAt > before) {
             state.me = me;
@@ -224,20 +274,18 @@ async function pay() {
         }
     }
     state.waiting = false;
-    state.notice = { kind: 'error', text: t.timeout };
-    render();
+    fail(t.timeout, true);
 }
 
+nativeButton?.onClick(() => mainAction?.());
 root.addEventListener('click', (event) => {
-    const action = (event.target as HTMLElement).closest<HTMLElement>('[data-action]')?.dataset.action;
+    const target = event.target as HTMLElement;
+    if (target.closest('#main-button')) return mainAction?.();
+    const action = target.closest<HTMLElement>('[data-action]')?.dataset.action;
     if (action === 'pay') void pay();
-    if (action === 'join' && state.me?.joinLink) openLink(state.me.joinLink);
     if (action === 'refresh') {
         state.notice = null;
-        refresh().catch(() => {
-            state.notice = { kind: 'error', text: t.error };
-            render();
-        });
+        refresh().catch(() => fail(t.error, true));
     }
 });
 
@@ -247,7 +295,7 @@ async function start() {
     try {
         state.config = await api.config();
     } catch {
-        root.innerHTML = `<div class="notice notice--error">${t.error}</div>`;
+        root.innerHTML = `<p class="group__note is-error">${t.error}</p>`;
         return;
     }
     renderShell();
@@ -255,10 +303,7 @@ async function start() {
     if (!initData) return;
 
     // статус подписки не ждёт загрузки TON Connect
-    const status = refresh().catch(() => {
-        state.notice = { kind: 'error', text: t.error };
-        render();
-    });
+    const status = refresh().catch(() => fail(t.error, true));
 
     const sdk = await tonConnectModule();
     if (sdk) {
@@ -272,7 +317,7 @@ async function start() {
         });
         tonConnect.onStatusChange(() => {
             if (state.notice?.text === t.wrongNetwork) state.notice = null;
-            renderActions();
+            render();
         });
     }
     await status;

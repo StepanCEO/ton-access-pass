@@ -17,7 +17,9 @@ The source of truth is the blockchain: anyone can verify a subscription without 
 
 [Live Mini App](https://pass.itssteps.site) · [Contract on Tonviewer](https://testnet.tonviewer.com/kQAcI3X5Pt46n3grbyZBW5QegZDhjkfd2wVTb1s8PupuSg1m) · [Русская версия](README.ru.md)
 
-<img src="docs/screens-en.png" alt="Mini App: new subscriber, active subscription, expired subscription" />
+<img src="docs/demo-en.gif" width="720" alt="Demo: paying for a subscription in the Mini App" />
+
+<sub>UI recording on test data, wallet confirmation skipped · <a href="docs/demo-en.mp4">MP4</a> · real payments: <a href="https://testnet.tonviewer.com/kQAcI3X5Pt46n3grbyZBW5QegZDhjkfd2wVTb1s8PupuSg1m">contract transactions on testnet</a></sub>
 
 </div>
 
@@ -30,6 +32,10 @@ The source of truth is the blockchain: anyone can verify a subscription without 
 5. When the subscription expires and is not renewed, the bot removes the user from the channel and offers to renew.
 
 No manual checks, no payment provider, no database of "who paid" that you have to trust.
+
+<img src="docs/screens-en.png" alt="Mini App: new subscriber, active subscription, expired subscription" />
+
+The Mini App follows Telegram's own settings screens: grouped lists, the user's Telegram theme colors and the native MainButton for the main action. The channel name in the header comes from the bot, not from config.
 
 ## How it works
 
@@ -103,7 +109,7 @@ backend/        Bot + HTTP API (Node.js, no framework), bundled into one file
   service.ts      join requests, expiry sweep, bot commands
   api.ts          /api/config, /api/me, /api/payment
   telegram.ts     initData verification, Bot API client
-app/            Mini App (Vite + TypeScript, no framework, Telegram theme colors)
+app/            Mini App (Vite + TypeScript, no framework, Telegram theme + MainButton)
 scripts/        testnet wallet, contract deploy, test payment, server deploy
 server/         systemd unit and a setup script for the bot token
 docs/SPEC.md    one-page specification
@@ -117,6 +123,7 @@ Requirements: Node.js 22+.
 npm install
 npm test                 # compiles contracts and runs 25 tests
 npm run app:dev          # Mini App with mock data: /?mock=new | active | expired
+node scripts/record-demo.mjs en   # re-record docs/demo-en.{mp4,gif} (needs app:dev, Chrome, ffmpeg)
 ```
 
 ### Deploy to testnet

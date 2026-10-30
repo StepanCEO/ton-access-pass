@@ -9,6 +9,7 @@ export interface Member {
 export interface State {
     updateOffset: number;
     channelId?: number;
+    channelTitle?: string;
     inviteLink?: string;
     /** Пользователи в канале: telegramId → срок подписки на момент последней проверки. */
     members: Record<string, Member>;

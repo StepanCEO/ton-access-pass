@@ -201,6 +201,7 @@ describe('AccessService', () => {
             my_chat_member: { chat: { id: CHANNEL, type: 'channel', title: 'Клуб' }, new_chat_member: { status: 'administrator' } },
         });
         expect(service.channelId).toBe(CHANNEL);
+        expect(service.channelTitle).toBe('Клуб');
         expect(await service.inviteLink()).toBe('https://t.me/+join');
         expect(telegram.calls[0].params).toMatchObject({ chat_id: CHANNEL, creates_join_request: true });
     });
@@ -216,7 +217,7 @@ describe('API', () => {
             botToken: BOT_TOKEN,
             network: 'testnet',
             now: () => NOW,
-            service: { inviteLink: async () => 'https://t.me/+join' },
+            service: { inviteLink: async () => 'https://t.me/+join', channelTitle: 'Клуб' },
             chain: {
                 master,
                 terms: async () => ({ price: PRICE, period: PERIOD }),
@@ -239,7 +240,7 @@ describe('API', () => {
 
     it('serves public terms', async () => {
         const body = await (await get('/api/config')).json();
-        expect(body).toMatchObject({ network: 'testnet', price: PRICE.toString(), period: PERIOD });
+        expect(body).toMatchObject({ network: 'testnet', price: PRICE.toString(), period: PERIOD, channelTitle: 'Клуб' });
         expect(Address.parse(body.master).equals(master)).toBe(true);
     });
 

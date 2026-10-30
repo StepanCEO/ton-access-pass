@@ -6,7 +6,7 @@ import { TelegramUser, verifyInitData } from './telegram';
 
 export interface ApiDeps {
     chain: Pick<AccessChain, 'master' | 'terms' | 'expiresAt' | 'paymentFor'>;
-    service: Pick<AccessService, 'inviteLink'>;
+    service: Pick<AccessService, 'inviteLink' | 'channelTitle'>;
     botToken: string;
     botUsername?: string;
     network: Network;
@@ -45,6 +45,7 @@ export function createApiServer(deps: ApiDeps) {
             return {
                 network: deps.network,
                 botUsername: deps.botUsername ?? null,
+                channelTitle: deps.service.channelTitle ?? null,
                 master: deps.chain.master.toString({ testOnly }),
                 price: price.toString(),
                 period,

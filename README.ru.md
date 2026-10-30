@@ -11,7 +11,9 @@ Telegram Mini App, смарт-контракт на Tact и бот, которы
 
 [Mini App](https://pass.itssteps.site) · [Контракт в Tonviewer](https://testnet.tonviewer.com/kQAcI3X5Pt46n3grbyZBW5QegZDhjkfd2wVTb1s8PupuSg1m) · [English](README.md)
 
-<img src="docs/screens-ru.png" alt="Mini App: новая подписка, активная подписка, подписка закончилась" />
+<img src="docs/demo-ru.gif" width="720" alt="Демо: оплата подписки в Mini App" />
+
+<sub>Запись интерфейса на тестовых данных, подтверждение в кошельке пропущено · <a href="docs/demo-ru.mp4">MP4</a> · настоящие платежи: <a href="https://testnet.tonviewer.com/kQAcI3X5Pt46n3grbyZBW5QegZDhjkfd2wVTb1s8PupuSg1m">транзакции контракта в testnet</a></sub>
 
 </div>
 
@@ -24,6 +26,10 @@ Telegram Mini App, смарт-контракт на Tact и бот, которы
 5. Когда срок вышел, а продления нет, бот убирает пользователя из канала и предлагает продлить.
 
 Никакой ручной проверки, платёжного агрегатора и базы «кто заплатил», которой нужно верить на слово.
+
+<img src="docs/screens-ru.png" alt="Mini App: новая подписка, активная подписка, подписка закончилась" />
+
+Интерфейс повторяет экраны настроек самого Telegram: сгруппированные списки, цвета темы пользователя и нативная кнопка MainButton для главного действия. Название канала в шапке приходит от бота.
 
 ## Как устроено
 
